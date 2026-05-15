@@ -7,4 +7,5 @@ var (
 	ErrRoleNameRequired    = errors.New("role name is required")
 	ErrMemberNameRequired  = errors.New("member name is required")
 	ErrMemberAlreadyExists = errors.New("member already exists in this team")
+	ErrMemberNotFound      = errors.New("member not found")
 )

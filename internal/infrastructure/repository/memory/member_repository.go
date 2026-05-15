@@ -2,7 +2,6 @@ package memory
 
 import (
 	"context"
-	"errors"
 	"sync"
 
 	"github.com/JonathanCarvalho39/scrum-center-api/internal/domain/entity"
@@ -52,5 +51,5 @@ func (r *MemberRepository) FindByTeamAndName(ctx context.Context, teamID uuid.UU
 		}
 	}
 
-	return nil, errors.New("member not found")
+	return nil, entity.ErrMemberNotFound
 }

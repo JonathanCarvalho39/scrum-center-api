@@ -57,7 +57,11 @@ func (uc *JoinTeamUseCase) Execute(ctx context.Context, input JoinTeamInput) (*J
 	}
 
 	// Check if member already exists in this team
-	existingMember, _ := uc.memberRepo.FindByTeamAndName(ctx, invite.TeamID, input.MemberName)
+	existingMember, err := uc.memberRepo.FindByTeamAndName(ctx, invite.TeamID, input.MemberName)
+	if err != nil && err != entity.ErrMemberNotFound {
+		// If error is not "not found", return it (database error, etc)
+		return nil, err
+	}
 	if existingMember != nil {
 		return nil, entity.ErrMemberAlreadyExists
 	}
