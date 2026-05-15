@@ -1,4 +1,4 @@
-name: CI/CD — Deploy em Produção (agilflow.duckdns.org)
+name: Deploy to VM
 
 on:
   push:
@@ -6,117 +6,17 @@ on:
   workflow_dispatch:
 
 env:
-  REGISTRY: docker.io
-  BACKEND_IMAGE: jonathancarvalho39/scrum-center-api
-  FRONTEND_IMAGE: jonathancarvalho39/scrum-center-view
-  EC2_HOST: ${{ secrets.EC2_HOST }}
-  EC2_USER: ubuntu
-  DEPLOY_DIR: /opt/agilflow
+  DEPLOY_DIR: /opt/scrum-center-api
 
 jobs:
-  # ─────────────────────────────────
-  # 1. TEST
-  # ─────────────────────────────────
-  test:
-    name: Testes Go
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.22'
-          cache: true
-
-      - name: Run tests
-        run: go test ./... -v -race -timeout 60s
-
-  # ─────────────────────────────────
-  # 2. BUILD BACKEND
-  # ─────────────────────────────────
-  build-backend:
-    name: Build Backend
-    runs-on: ubuntu-latest
-    needs: test
-    permissions:
-      contents: read
-      packages: write
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - name: Login Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.REGISTRY_USER }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
-
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}
-          tags: |
-            type=sha,prefix=sha-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Export tar for Trivy
-        run: |
-          docker pull ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest
-          docker save ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE }}:latest -o /tmp/backend.tar
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: backend-tar
-          path: /tmp/backend.tar
-          retention-days: 1
-
-  # ─────────────────────────────────
-  # 3. TRIVY SCAN
-  # ─────────────────────────────────
-  trivy-scan:
-    name: Trivy Security Scan
-    runs-on: ubuntu-latest
-    needs: build-backend
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: backend-tar
-          path: /tmp
-
-      - name: Scan backend image
-        uses: aquasecurity/trivy-action@master
-        with:
-          input: /tmp/backend.tar
-          severity: CRITICAL,HIGH
-          exit-code: '1'
-          format: table
-
-  # ─────────────────────────────────
-  # 4. DEPLOY PARA EC2
-  # ─────────────────────────────────
   deploy:
-    name: Deploy → EC2 (44.202.52.62)
+    name: Deploy to Production VM
     runs-on: ubuntu-latest
-    needs: trivy-scan
     environment:
       name: production
-      url: http://agilflow.duckdns.org/api/health
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Setup SSH
         run: |
@@ -125,89 +25,98 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Copy docker-compose to EC2
+      - name: Create deployment directory
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} \
+            "sudo mkdir -p ${{ env.DEPLOY_DIR }} && sudo chown ubuntu:ubuntu ${{ env.DEPLOY_DIR }}"
+
+      - name: Copy docker-compose
         run: |
           scp -i ~/.ssh/deploy_key \
-            docker-compose.yml \
-            ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ env.DEPLOY_DIR }}/docker-compose.yml
+            docker-compose.prod.yml \
+            ubuntu@${{ secrets.EC2_HOST }}:${{ env.DEPLOY_DIR }}/docker-compose.yml
 
-      - name: Copy nginx config to EC2
+      - name: Copy nginx configuration
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} \
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} \
             "mkdir -p ${{ env.DEPLOY_DIR }}/nginx/conf.d ${{ env.DEPLOY_DIR }}/nginx/ssl"
+          
+          scp -i ~/.ssh/deploy_key -r \
+            nginx/nginx.conf \
+            nginx/conf.d/ \
+            ubuntu@${{ secrets.EC2_HOST }}:${{ env.DEPLOY_DIR }}/nginx/
 
-      - name: Deploy via SSH
+      - name: Copy SSL setup scripts
         run: |
-          ssh -i ~/.ssh/deploy_key \
-            ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} << 'DEPLOY'
-          set -e
+          scp -i ~/.ssh/deploy_key \
+            setup-ssl.sh \
+            setup-ssl-renew.sh \
+            ubuntu@${{ secrets.EC2_HOST }}:${{ env.DEPLOY_DIR }}/
+          
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} \
+            "chmod +x ${{ env.DEPLOY_DIR }}/setup-ssl.sh ${{ env.DEPLOY_DIR }}/setup-ssl-renew.sh"
 
+      - name: Deploy application
+        run: |
+          ssh -i ~/.ssh/deploy_key ubuntu@${{ secrets.EC2_HOST }} << 'DEPLOY'
+          set -e
           cd ${{ env.DEPLOY_DIR }}
 
-          # Write .env (secrets never logged)
+          # Create .env file
           cat > .env << 'ENV'
+          PORT=8080
+          GIN_MODE=release
+          DB_HOST=postgres
+          DB_PORT=5432
           DB_USER=postgres
           DB_NAME=scrum_center
-          GIN_MODE=release
-          JWT_EXPIRATION_HOURS=1
-          REFRESH_TOKEN_EXPIRATION_HOURS=168
-          ALLOWED_ORIGINS=https://agilflow.duckdns.org
-          BACKEND_IMAGE=jonathancarvalho39/scrum-center-api:latest
-          FRONTEND_IMAGE=jonathancarvalho39/scrum-center-view:latest
+          DB_SSLMODE=disable
+          ALLOWED_ORIGINS=http://scrumcenter.duckdns.org,https://scrumcenter.duckdns.org
+          ENVIRONMENT=production
           ENV
 
-          # Append secrets
+          # Add secrets
           echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> .env
-          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "BACKEND_IMAGE=ghcr.io/jonathancarvalho39/scrum-center-api:latest" >> .env
 
-          # Pull latest images
-          docker compose pull
+          # Pull latest image from GHCR
+          docker pull ghcr.io/jonathancarvalho39/scrum-center-api:latest
 
-          # Zero-downtime restart
+          # Deploy with zero downtime
           docker compose up -d --remove-orphans
 
-          echo "✅ Deploy completed: $(date)"
+          echo "✅ Deploy completed at $(date)"
           DEPLOY
 
-      - name: Health check backend
+      - name: Health check
         run: |
-          echo "Aguardando backend inicializar..."
-          sleep 30
+          echo "Waiting for application to start..."
+          sleep 20
 
           for i in {1..5}; do
-            HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}:8080/health || echo "000")
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}/health || echo "000")
             if [ "$HTTP" = "200" ]; then
-              echo "✅ Backend health check PASSED (HTTP $HTTP)"
-              break
+              echo "✅ Health check PASSED (HTTP $HTTP)"
+              exit 0
             fi
-            echo "Tentativa $i/5: HTTP $HTTP — aguardando 15s..."
-            sleep 15
+            echo "Attempt $i/5: HTTP $HTTP - waiting 10s..."
+            sleep 10
           done
 
-          if [ "$HTTP" != "200" ]; then
-            echo "❌ Backend health check FAILED"
-            exit 1
-          fi
+          echo "❌ Health check FAILED"
+          exit 1
 
-      - name: Health check nginx/frontend
+      - name: Update DuckDNS
+        if: success()
         run: |
-          HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.EC2_HOST }}/ || echo "000")
-          echo "Frontend HTTP: $HTTP"
-          if [ "$HTTP" = "200" ] || [ "$HTTP" = "301" ] || [ "$HTTP" = "302" ]; then
-            echo "✅ Frontend health check PASSED"
+          RESPONSE=$(curl -s "https://www.duckdns.org/update?domains=scrumcenter&token=${{ secrets.TOKEN_DNS }}&ip=")
+          if [ "$RESPONSE" = "OK" ]; then
+            echo "✅ DuckDNS updated"
           else
-            echo "⚠️ Frontend HTTP $HTTP (pode ainda estar iniciando)"
+            echo "⚠️ DuckDNS update failed (non-critical): $RESPONSE"
           fi
 
       - name: Cleanup SSH key
         if: always()
         run: rm -f ~/.ssh/deploy_key
 
-      - name: Deploy summary
-        if: success()
-        run: |
-          echo "✅ Deploy em produção concluído com sucesso"
-          echo "🌐 URL: http://agilflow.duckdns.org"
-          echo "🔍 API: http://agilflow.duckdns.org/api/health"
-          echo "🕐 Timestamp: $(date)"

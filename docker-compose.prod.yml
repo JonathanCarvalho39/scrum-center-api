@@ -1,16 +1,13 @@
 version: '3.9'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: scrum-center-db
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME:-scrum_center}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,31 +19,23 @@ services:
     networks:
       - scrum-network
 
-  # API Backend (usando imagem do GHCR ou build local)
   api:
-    # Descomente a linha abaixo para usar imagem do GHCR
-    # image: ghcr.io/jonathancarvalho39/scrum-center-api:latest
-
-    # Ou use build local
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:-ghcr.io/jonathancarvalho39/scrum-center-api:latest}
     container_name: scrum-center-api
     environment:
       PORT: ${PORT:-8080}
-      GIN_MODE: ${GIN_MODE:-debug}
+      GIN_MODE: ${GIN_MODE:-release}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-postgres}
-      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-scrum_center}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
-    ports:
-      - "8080:8080"
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
     depends_on:
       postgres:
         condition: service_healthy
-    # Healthcheck usando curl (disponível no alpine)
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health || exit 1"]
       interval: 30s
@@ -56,9 +45,27 @@ services:
     restart: unless-stopped
     networks:
       - scrum-network
-    # Para desenvolvimento: monte o código fonte para hot reload
-    # volumes:
-    #   - ./:/app
+
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: scrum-center-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - scrum-network
 
 volumes:
   postgres_data:

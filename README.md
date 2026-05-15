@@ -112,6 +112,29 @@ go test -cover ./...
 
 **Política obrigatória**: Repositórios testados com PostgreSQL real (sem mocks).
 
+## 🐳 Docker
+
+### Build local
+```bash
+docker build -t scrum-center-api .
+```
+
+### Executar com Docker Compose
+```bash
+docker-compose up
+```
+
+### Pull da imagem do GitHub Container Registry
+```bash
+docker pull ghcr.io/jonathancarvalho39/scrum-center-api:latest
+```
+
+## 🔄 CI/CD
+
+GitHub Actions configurado com:
+- **CI:** Lint, testes, build e security scan
+- **Docker:** Build multi-arch e push para GitHub Container Registry
+
 ## 📚 Documentação API
 
 A documentação OpenAPI/Swagger será gerada automaticamente com `swag`:

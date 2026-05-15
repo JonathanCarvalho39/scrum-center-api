@@ -3,29 +3,37 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-RUN apk add --no-cache git make
+# Instalar dependências necessárias para build
+RUN apk add --no-cache git make ca-certificates
 
+# Copiar go.mod e go.sum primeiro para aproveitar cache de layers
 COPY go.mod go.sum ./
-RUN go mod download
+RUN go mod download && go mod verify
 
+# Copiar código fonte
 COPY . .
 
-RUN make build
+# Build com flags de otimização e CGO desabilitado para binary estático
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -a \
+    -o /app/bin/api \
+    ./cmd/api
 
-# Stage 2: Runtime
-FROM golang:1.22-alpine
+# Stage 2: Runtime mínimo com distroless
+FROM gcr.io/distroless/static-debian12:nonroot
 
-WORKDIR /app
+# Copiar certificados CA para HTTPS funcionar
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Copiar binário
+COPY --from=builder /app/bin/api /api
 
-COPY --from=builder /app/bin/api /usr/local/bin/api
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
-
-USER appuser
+# Usar usuário não-root (distroless já vem com nonroot user UID 65532)
+USER nonroot:nonroot
 
 EXPOSE 8080
 
-CMD ["api"]
+# Healthcheck não funciona em distroless (sem shell), será feito no Kubernetes/Docker Compose
+
+ENTRYPOINT ["/api"]

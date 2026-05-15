@@ -51,18 +51,31 @@ chmod 600 $DEPLOY_DIR/nginx/ssl/privkey.pem
 echo "🔧 Habilitando HTTPS no Nginx..."
 NGINX_CONF="$DEPLOY_DIR/nginx/conf.d/api.conf"
 
-# Descomentar bloco HTTPS
-sed -i '/#.*server {/,/#.*}/s/^# //' $NGINX_CONF
+# Criar backup
+cp $NGINX_CONF $NGINX_CONF.bak
+
+# Comentar bloco HTTP do domínio (linhas 23-58, mantém default_server)
+sed -i '/^# HTTP Server para o domínio (ANTES de configurar SSL)/,/^}$/ {
+    /^# HTTP Server para o domínio/! {
+        /^}$/! s/^/# /
+    }
+}' $NGINX_CONF
+
+# Descomentar blocos HTTPS (depois da linha com ====)
+sed -i '/^# ============================================================/,$ {
+    /^# server {$/,/^# }$/ s/^# //
+    /^#     / s/^# //
+    /^# Redirect/ s/^# //
+}' $NGINX_CONF
 
 echo ""
 echo "✅ SSL configurado com sucesso!"
 echo ""
 echo "📝 Próximos passos:"
 echo "   1. Reiniciar containers: cd $DEPLOY_DIR && docker compose up -d"
-echo "   2. Testar HTTPS: curl https://$DOMAIN/health"
-echo "   3. Configurar renovação automática (ver abaixo)"
+echo "   2. Testar HTTP→HTTPS redirect: curl -I http://$DOMAIN"
+echo "   3. Testar HTTPS: curl https://$DOMAIN/health"
+echo "   4. Configurar renovação: sudo bash $DEPLOY_DIR/setup-ssl-renew.sh"
 echo ""
-echo "🔄 Para configurar renovação automática:"
-echo "   sudo bash $DEPLOY_DIR/setup-ssl-renew.sh"
-echo ""
+
 
