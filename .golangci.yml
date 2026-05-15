@@ -25,7 +25,6 @@ linters:
     - dupl          # Detecta duplicação de código
     - prealloc      # Sugere pré-alocação de slices
     - unconvert     # Remove conversões desnecessárias
-    - shadow        # Detecta shadowing de variáveis
 
 linters-settings:
   errcheck:
