@@ -62,4 +62,3 @@ func (h *InviteHandler) GenerateInvite(c *gin.Context) {
 		Code:     output.Code,
 	})
 }
-

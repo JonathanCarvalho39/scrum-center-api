@@ -50,4 +50,3 @@ func generateInviteCode() (string, error) {
 
 	return code, nil
 }
-

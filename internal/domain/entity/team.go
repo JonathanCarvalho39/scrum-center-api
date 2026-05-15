@@ -23,4 +23,3 @@ func NewTeam(name string) (*Team, error) {
 		CreatedAt: time.Now(),
 	}, nil
 }
-

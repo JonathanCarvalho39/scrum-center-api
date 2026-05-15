@@ -51,4 +51,3 @@ func (r *TeamRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.Te
 
 	return team, nil
 }
-

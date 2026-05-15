@@ -100,4 +100,3 @@ func TestCreateTeam_RepositoryError(t *testing.T) {
 		t.Fatal("Expected error from repository, got nil")
 	}
 }
-

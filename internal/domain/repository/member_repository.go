@@ -12,4 +12,3 @@ type MemberRepository interface {
 	FindByTeamID(ctx context.Context, teamID uuid.UUID) ([]*entity.Member, error)
 	FindByTeamAndName(ctx context.Context, teamID uuid.UUID, name string) (*entity.Member, error)
 }
-

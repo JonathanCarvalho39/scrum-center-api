@@ -17,9 +17,9 @@ type RoleOutput struct {
 }
 
 type CreateTeamOutput struct {
-	TeamID           string
-	TeamName         string
-	PredefinedRoles  []RoleOutput
+	TeamID          string
+	TeamName        string
+	PredefinedRoles []RoleOutput
 }
 
 type CreateTeamUseCase struct {
@@ -70,4 +70,3 @@ func (uc *CreateTeamUseCase) Execute(ctx context.Context, input CreateTeamInput)
 		PredefinedRoles: rolesOutput,
 	}, nil
 }
-

@@ -12,4 +12,3 @@ type RoleRepository interface {
 	FindByID(ctx context.Context, id uuid.UUID) (*entity.Role, error)
 	FindByTeamID(ctx context.Context, teamID uuid.UUID) ([]*entity.Role, error)
 }
-

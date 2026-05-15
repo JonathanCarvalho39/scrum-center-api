@@ -53,4 +53,3 @@ func (r *RoleRepository) FindByTeamID(ctx context.Context, teamID uuid.UUID) ([]
 
 	return roles, nil
 }
-

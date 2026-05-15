@@ -54,4 +54,3 @@ func (r *MemberRepository) FindByTeamAndName(ctx context.Context, teamID uuid.UU
 
 	return nil, errors.New("member not found")
 }
-

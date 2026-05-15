@@ -74,4 +74,3 @@ func (h *MemberHandler) JoinTeam(c *gin.Context) {
 		RoleName:   output.RoleName,
 	})
 }
-

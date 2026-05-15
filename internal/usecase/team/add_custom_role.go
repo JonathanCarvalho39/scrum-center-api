@@ -66,5 +66,3 @@ func (uc *AddCustomRoleUseCase) Execute(ctx context.Context, input AddCustomRole
 		IsPredefined: role.IsPredefined,
 	}, nil
 }
-
-

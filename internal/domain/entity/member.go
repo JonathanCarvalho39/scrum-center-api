@@ -27,4 +27,3 @@ func NewMember(teamID, roleID uuid.UUID, name string) (*Member, error) {
 		JoinedAt: time.Now(),
 	}, nil
 }
-

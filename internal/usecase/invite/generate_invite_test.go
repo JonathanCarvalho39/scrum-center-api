@@ -116,4 +116,3 @@ func TestGenerateInvite_MultipleInvites(t *testing.T) {
 		t.Error("Expected different invite IDs, got the same ID")
 	}
 }
-

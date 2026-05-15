@@ -56,4 +56,3 @@ func (r *InviteRepository) FindByTeamID(ctx context.Context, teamID uuid.UUID) (
 
 	return invites, nil
 }
-

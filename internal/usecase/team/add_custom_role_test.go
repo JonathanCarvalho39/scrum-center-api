@@ -110,4 +110,3 @@ func TestAddCustomRole_InvalidTeamID(t *testing.T) {
 		t.Fatal("Expected error for invalid UUID, got nil")
 	}
 }
-

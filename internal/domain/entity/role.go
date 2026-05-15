@@ -30,9 +30,9 @@ func NewRole(teamID uuid.UUID, name string, isPredefined bool) (*Role, error) {
 
 // Predefined roles constants
 const (
-	RoleScrumMaster   = "Scrum Master"
-	RoleProductOwner  = "Product Owner"
-	RoleDeveloper     = "Developer"
+	RoleScrumMaster  = "Scrum Master"
+	RoleProductOwner = "Product Owner"
+	RoleDeveloper    = "Developer"
 )
 
 var PredefinedRoles = []string{
@@ -40,4 +40,3 @@ var PredefinedRoles = []string{
 	RoleProductOwner,
 	RoleDeveloper,
 }
-

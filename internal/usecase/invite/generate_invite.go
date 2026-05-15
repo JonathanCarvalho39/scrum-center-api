@@ -60,4 +60,3 @@ func (uc *GenerateInviteUseCase) Execute(ctx context.Context, input GenerateInvi
 		Code:     invite.Code,
 	}, nil
 }
-

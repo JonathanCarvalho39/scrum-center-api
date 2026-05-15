@@ -12,4 +12,3 @@ type InviteRepository interface {
 	FindByCode(ctx context.Context, code string) (*entity.Invite, error)
 	FindByTeamID(ctx context.Context, teamID uuid.UUID) ([]*entity.Invite, error)
 }
-

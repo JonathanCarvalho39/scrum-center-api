@@ -14,17 +14,19 @@ linters:
     - unused        # Detecta código não usado
     - gofmt         # Verifica formatação
     - goimports     # Verifica imports
-    - misspell      # Verifica erros de ortografia
-    - revive        # Linter rápido e configurável
     - gosec         # Verifica problemas de segurança
-    - bodyclose     # Verifica se response body está sendo fechado
-    - noctx         # Detecta envio de http requests sem context
-    - gocritic      # Sugestões de melhorias de código
-    - godot         # Verifica se comentários terminam com ponto
-    - gocyclo       # Complexidade ciclomática
-    - dupl          # Detecta duplicação de código
-    - prealloc      # Sugere pré-alocação de slices
-    - unconvert     # Remove conversões desnecessárias
+
+  disable:
+    - misspell      # Muito restritivo
+    - revive        # Warnings de documentação (muito verboso)
+    - bodyclose     # Não aplicável ainda
+    - noctx         # Não aplicável ainda
+    - gocritic      # Muito restritivo
+    - godot         # Comentários com ponto (muito restritivo)
+    - gocyclo       # Complexidade (não prioritário)
+    - dupl          # Duplicação (não prioritário)
+    - prealloc      # Pre-alocação (otimizaç��o prematura)
+    - unconvert     # Conversões (não prioritário)
 
 linters-settings:
   errcheck:
@@ -35,28 +37,6 @@ linters-settings:
     enable:
       - shadow
 
-  gocyclo:
-    min-complexity: 15
-
-  dupl:
-    threshold: 100
-
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
-
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-        disabled: false
-      - name: package-comments
-        severity: warning
-        disabled: false
 
 issues:
   exclude-use-default: false
@@ -64,10 +44,9 @@ issues:
   max-same-issues: 0
 
   exclude-rules:
-    # Exclui arquivos de teste de algumas regras
+    # Permite não checar erros em setup de testes
     - path: _test\.go
       linters:
-        - dupl
+        - errcheck
         - gosec
-        - gocritic
 

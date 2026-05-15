@@ -8,8 +8,8 @@ import (
 )
 
 type TeamHandler struct {
-	createTeamUseCase     *team.CreateTeamUseCase
-	addCustomRoleUseCase  *team.AddCustomRoleUseCase
+	createTeamUseCase    *team.CreateTeamUseCase
+	addCustomRoleUseCase *team.AddCustomRoleUseCase
 }
 
 func NewTeamHandler(
@@ -27,9 +27,9 @@ type CreateTeamRequest struct {
 }
 
 type CreateTeamResponse struct {
-	TeamID          string              `json:"team_id"`
-	TeamName        string              `json:"team_name"`
-	PredefinedRoles []RoleResponse      `json:"predefined_roles"`
+	TeamID          string         `json:"team_id"`
+	TeamName        string         `json:"team_name"`
+	PredefinedRoles []RoleResponse `json:"predefined_roles"`
 }
 
 type RoleResponse struct {
@@ -128,4 +128,3 @@ func (h *TeamHandler) AddCustomRole(c *gin.Context) {
 		IsPredefined: output.IsPredefined,
 	})
 }
-
