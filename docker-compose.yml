@@ -20,7 +20,7 @@ services:
       - agilflow-network
 
   backend:
-    image: ${BACKEND_IMAGE:-jonathancarvalho39/scrum-center-api:latest}
+    image: ${BACKEND_IMAGE}
     container_name: agilflow-backend
     environment:
       PORT: 8080
@@ -30,9 +30,6 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME:-scrum_center}
-      JWT_SECRET: ${JWT_SECRET}
-      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-1}
-      REFRESH_TOKEN_EXPIRATION_HOURS: ${REFRESH_TOKEN_EXPIRATION_HOURS:-168}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://agilflow.duckdns.org}
       ENVIRONMENT: production
     depends_on:
@@ -49,7 +46,7 @@ services:
       - agilflow-network
 
   frontend:
-    image: ${FRONTEND_IMAGE:-jonathancarvalho39/scrum-center-view:latest}
+    image: ${FRONTEND_IMAGE}
     container_name: agilflow-frontend
     depends_on:
       backend:
