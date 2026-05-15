@@ -4,6 +4,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/JonathanCarvalho39/scrum-center-api/internal/handler"
+	"github.com/JonathanCarvalho39/scrum-center-api/internal/infrastructure/repository/memory"
+	"github.com/JonathanCarvalho39/scrum-center-api/internal/usecase/invite"
+	"github.com/JonathanCarvalho39/scrum-center-api/internal/usecase/member"
+	"github.com/JonathanCarvalho39/scrum-center-api/internal/usecase/team"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -41,13 +46,30 @@ func main() {
 	}
 	gin.SetMode(mode)
 
+	// Initialize repositories (in-memory)
+	teamRepo := memory.NewTeamRepository()
+	roleRepo := memory.NewRoleRepository()
+	inviteRepo := memory.NewInviteRepository()
+	memberRepo := memory.NewMemberRepository()
+
+	// Initialize use cases
+	createTeamUseCase := team.NewCreateTeamUseCase(teamRepo, roleRepo)
+	addCustomRoleUseCase := team.NewAddCustomRoleUseCase(teamRepo, roleRepo)
+	generateInviteUseCase := invite.NewGenerateInviteUseCase(teamRepo, inviteRepo)
+	joinTeamUseCase := member.NewJoinTeamUseCase(teamRepo, roleRepo, inviteRepo, memberRepo)
+
+	// Initialize handlers
+	teamHandler := handler.NewTeamHandler(createTeamUseCase, addCustomRoleUseCase)
+	inviteHandler := handler.NewInviteHandler(generateInviteUseCase)
+	memberHandler := handler.NewMemberHandler(joinTeamUseCase)
+
 	// Initialize router
 	router := gin.Default()
 
 	// Health check endpoint
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"status": "ok",
+			"status":  "ok",
 			"service": "scrum-center-api",
 		})
 	})
@@ -55,6 +77,26 @@ func main() {
 	// API v1 routes
 	v1 := router.Group("/api/v1")
 	{
+		// Team routes
+		teams := v1.Group("/teams")
+		{
+			teams.POST("", teamHandler.CreateTeam)
+			teams.POST("/roles", teamHandler.AddCustomRole)
+		}
+
+		// Invite routes
+		invites := v1.Group("/invites")
+		{
+			invites.POST("", inviteHandler.GenerateInvite)
+		}
+
+		// Member routes
+		members := v1.Group("/members")
+		{
+			members.POST("/join", memberHandler.JoinTeam)
+		}
+
+		// Legacy ping endpoint
 		v1.GET("/ping", func(c *gin.Context) {
 			c.JSON(200, gin.H{
 				"message": "pong",
