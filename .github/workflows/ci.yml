@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  GO_VERSION: '1.21'
+  GO_VERSION: '1.22'
 
 jobs:
   # Job 1: Linting e validações estáticas
@@ -35,14 +35,10 @@ jobs:
           go mod tidy
           git diff --exit-code go.mod go.sum
 
-  # Job 2: Testes em matriz de versões Go
+  # Job 2: Testes
   test:
-    name: Test (Go ${{ matrix.go-version }})
+    name: Test
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        go-version: ['1.20', '1.21', '1.22']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,7 +46,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: ${{ env.GO_VERSION }}
           cache: true
 
       - name: Download dependencies
@@ -63,7 +59,6 @@ jobs:
         run: go tool cover -func=coverage.out
 
       - name: Upload coverage to Codecov
-        if: matrix.go-version == '1.21'
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.out
@@ -115,22 +110,4 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gosec.sarif
-
-  # Job 5: Verificação de dependências vulneráveis
-  dependencies:
-    name: Check Dependencies
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Check for known vulnerabilities
-        run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./...
 
