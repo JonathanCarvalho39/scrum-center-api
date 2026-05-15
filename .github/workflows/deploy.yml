@@ -1,8 +1,13 @@
 name: Deploy to VM
 
 on:
-  push:
+  # Roda automaticamente após Docker Build passar
+  workflow_run:
+    workflows: ["Docker Build & Push"]
+    types:
+      - completed
     branches: [main]
+  # Permite execução manual
   workflow_dispatch:
 
 env:
@@ -12,6 +17,10 @@ jobs:
   deploy:
     name: Deploy to Production VM
     runs-on: ubuntu-latest
+    # Só roda se Docker passou OU for execução manual
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
     environment:
       name: production
     steps:
