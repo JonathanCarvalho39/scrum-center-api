@@ -106,7 +106,7 @@ jobs:
         uses: aquasecurity/trivy-action@master
         continue-on-error: true
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}-${{ github.sha }}
+          image-ref: ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -136,19 +136,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull image
-        run: docker pull ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}-${{ github.sha }}
+        run: docker pull ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}
 
       - name: Test image runs
         run: |
           docker run --rm -d --name test-container \
             -p 8080:8080 \
-            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}
           sleep 5
           docker logs test-container
           docker stop test-container || true
 
       - name: Inspect image
         run: |
-          docker inspect ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}-${{ github.sha }}
-          docker history ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}-${{ github.sha }}
+          docker inspect ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}
+          docker history ${{ env.REGISTRY }}/${{ steps.image.outputs.name }}:${{ github.ref_name }}
 
