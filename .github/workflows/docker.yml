@@ -32,6 +32,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write  # Necessário para build provenance attestation
+      attestations: write  # Necessário para publicar attestations
     outputs:
       image-digest: ${{ steps.build.outputs.digest }}
       image-tags: ${{ steps.meta.outputs.tags }}
