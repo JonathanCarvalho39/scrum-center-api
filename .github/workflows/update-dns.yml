@@ -1,0 +1,25 @@
+name: Update DuckDNS
+
+on:
+  # Atualiza IP a cada 5 minutos (caso IP da VM mude)
+  schedule:
+    - cron: '*/5 * * * *'
+  # Permite executar manualmente
+  workflow_dispatch:
+
+jobs:
+  update-dns:
+    name: Update DuckDNS IP
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update DuckDNS
+        run: |
+          RESPONSE=$(curl -s "https://www.duckdns.org/update?domains=scrumcenter&token=${{ secrets.TOKEN_DNS }}&ip=")
+          
+          if [ "$RESPONSE" = "OK" ]; then
+            echo "✅ DuckDNS updated successfully"
+          else
+            echo "❌ DuckDNS update failed: $RESPONSE"
+            exit 1
+          fi
+

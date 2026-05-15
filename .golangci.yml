@@ -1,0 +1,72 @@
+run:
+  timeout: 5m
+  tests: true
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Verifica erros não tratados
+    - gosimple      # Simplificações de código
+    - govet         # Análise estática padrão
+    - ineffassign   # Detecta atribuições ineficientes
+    - staticcheck   # Verificações estáticas avançadas
+    - typecheck     # Verificação de tipos
+    - unused        # Detecta código não usado
+    - gofmt         # Verifica formatação
+    - goimports     # Verifica imports
+    - misspell      # Verifica erros de ortografia
+    - revive        # Linter rápido e configurável
+    - gosec         # Verifica problemas de segurança
+    - bodyclose     # Verifica se response body está sendo fechado
+    - noctx         # Detecta envio de http requests sem context
+    - gocritic      # Sugestões de melhorias de código
+    - godot         # Verifica se comentários terminam com ponto
+    - gocyclo       # Complexidade ciclomática
+    - dupl          # Detecta duplicação de código
+    - prealloc      # Sugere pré-alocação de slices
+    - unconvert     # Remove conversões desnecessárias
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    check-shadowing: true
+
+  gocyclo:
+    min-complexity: 15
+
+  dupl:
+    threshold: 100
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+      - name: package-comments
+        severity: warning
+        disabled: false
+
+issues:
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  exclude-rules:
+    # Exclui arquivos de teste de algumas regras
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+        - gocritic
+

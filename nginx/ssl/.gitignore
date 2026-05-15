@@ -1,0 +1,6 @@
+# Adicionar certificados SSL aqui
+# Veja README.md para instruções
+*.pem
+*.key
+*.crt
+
